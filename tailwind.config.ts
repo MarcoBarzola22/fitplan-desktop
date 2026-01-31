@@ -3,10 +3,9 @@ import type { Config } from "tailwindcss";
 export default {
   darkMode: ["class"],
   content: [
-    "./pages/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
-    "./app/**/*.{ts,tsx}",
-    "./src/**/*.{ts,tsx}",
+    // AQUÍ ESTÁ EL CAMBIO IMPORTANTE PARA ELECTRON:
+    "./src/renderer/index.html",
+    "./src/renderer/src/**/*.{js,ts,jsx,tsx}",
   ],
   prefix: "",
   theme: {
