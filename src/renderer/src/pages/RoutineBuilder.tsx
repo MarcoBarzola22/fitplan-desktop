@@ -19,7 +19,7 @@ export default function RoutineBuilder() {
   const { exercises, routinePlan, setClientName, setDaysPerWeek, clearRoutinePlan } = useExerciseStore();
   const { toast } = useToast();
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     const hasExercises = routinePlan.days.some((day) => day.exercises.length > 0);
     
     if (!hasExercises) {
@@ -31,49 +31,54 @@ export default function RoutineBuilder() {
       return;
     }
 
-    // Generate CSV content
-    const headers = ['Día', 'Patrón', 'Ejercicio', 'Sets', 'Reps', 'Rest (s)', 'Weight', 'RPE'];
-    const rows: string[][] = [];
+    // 1. Preparamos los datos tal cual los espera nuestro backend de Electron
+    const payload = {
+      clientName: routinePlan.clientName,
+      days: routinePlan.days.map((day) => ({
+        dayNumber: day.dayNumber,
+        exercises: day.exercises.map((ex) => {
+          // Buscamos los datos reales del ejercicio usando su ID
+          const exerciseDef = exercises.find((e) => e.id === ex.exerciseId);
+          
+          return {
+            patternName: ex.patternFilter ? patternLabels[ex.patternFilter as keyof typeof patternLabels] : '',
+            exerciseName: exerciseDef?.name || '',
+            videoUrl: exerciseDef?.videoUrl || '', // Pasamos el video para que sea clickeable
+            sets: ex.sets,
+            reps: ex.reps,
+            rest: ex.rest,
+            weight: ex.weight,
+            rpe: ex.rpe,
+          };
+        }),
+      })),
+    };
 
-    routinePlan.days.forEach((day) => {
-      day.exercises.forEach((ex) => {
-        const exerciseData = exercises.find((e) => e.id === ex.exerciseId);
-        rows.push([
-          `Día ${day.dayNumber}`,
-          ex.patternFilter ? patternLabels[ex.patternFilter] : '',
-          exerciseData?.name || '',
-          ex.sets,
-          ex.reps,
-          ex.rest,
-          ex.weight,
-          ex.rpe,
-        ]);
+    try {
+      // 2. Llamamos al puente mágico de Electron
+      const result = await window.api.exportExcel(payload);
+
+      if (result.success) {
+        toast({
+          title: 'Exportación exitosa',
+          description: 'El archivo Excel ha sido guardado correctamente.',
+        });
+      } else if (!result.canceled) {
+        // Si falló pero NO fue porque el usuario cerró la ventana de guardar
+        toast({
+          title: 'Error al exportar',
+          description: result.error || 'Ocurrió un error al generar el archivo.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error("Fallo la comunicación con Electron:", error);
+      toast({
+        title: 'Error de sistema',
+        description: 'No se pudo comunicar con el generador de Excel.',
+        variant: 'destructive',
       });
-    });
-
-    const csvContent = [
-      `Cliente: ${routinePlan.clientName || 'Sin nombre'}`,
-      `Días por semana: ${routinePlan.daysPerWeek}`,
-      '',
-      headers.join(','),
-      ...rows.map((row) => row.join(',')),
-    ].join('\n');
-
-    // Create and download file
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `rutina_${routinePlan.clientName || 'cliente'}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    toast({
-      title: 'Exportación exitosa',
-      description: 'La rutina ha sido exportada como archivo CSV.',
-    });
+    }
   };
 
   return (

@@ -1,16 +1,18 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
-// Custom APIs for renderer
-const api = {}
+// Definimos las funciones que el Frontend podrá usar
+const api = {
+  getExercises: () => ipcRenderer.invoke('db:get-exercises'),
+  createExercise: (data: any) => ipcRenderer.invoke('db:create-exercise', data),
+  getPatterns: () => ipcRenderer.invoke('db:get-patterns'),
+  exportExcel: (data: any) => ipcRenderer.invoke('export:excel', data),
+}
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
+    contextBridge.exposeInMainWorld('api', api) // <--- ¡Importante! Exponemos 'api'
   } catch (error) {
     console.error(error)
   }

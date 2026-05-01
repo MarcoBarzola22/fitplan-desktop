@@ -5,8 +5,11 @@ interface ExerciseStore {
   exercises: Exercise[];
   routinePlan: RoutinePlan;
   
+  // Acciones asíncronas para la Base de Datos
+  fetchExercises: () => Promise<void>;
+  
   // Exercise library actions
-  addExercise: (exercise: Exercise) => void;
+  addExercise: (exercise: Exercise) => Promise<void>;
   updateExercise: (id: string, exercise: Partial<Exercise>) => void;
   deleteExercise: (id: string) => void;
   
@@ -18,23 +21,6 @@ interface ExerciseStore {
   removeExerciseFromDay: (dayId: string, exerciseId: string) => void;
   clearRoutinePlan: () => void;
 }
-
-const defaultExercises: Exercise[] = [
-  { id: '1', name: 'Press de Banca', pattern: 'push', videoUrl: 'https://youtube.com/watch?v=example1' },
-  { id: '2', name: 'Press Militar', pattern: 'push', videoUrl: 'https://youtube.com/watch?v=example2' },
-  { id: '3', name: 'Fondos en Paralelas', pattern: 'push', videoUrl: 'https://youtube.com/watch?v=example3' },
-  { id: '4', name: 'Dominadas', pattern: 'pull', videoUrl: 'https://youtube.com/watch?v=example4' },
-  { id: '5', name: 'Remo con Barra', pattern: 'pull', videoUrl: 'https://youtube.com/watch?v=example5' },
-  { id: '6', name: 'Face Pull', pattern: 'pull', videoUrl: 'https://youtube.com/watch?v=example6' },
-  { id: '7', name: 'Sentadilla', pattern: 'knee-dominant', videoUrl: 'https://youtube.com/watch?v=example7' },
-  { id: '8', name: 'Prensa de Piernas', pattern: 'knee-dominant', videoUrl: 'https://youtube.com/watch?v=example8' },
-  { id: '9', name: 'Peso Muerto', pattern: 'hip-dominant', videoUrl: 'https://youtube.com/watch?v=example9' },
-  { id: '10', name: 'Hip Thrust', pattern: 'hip-dominant', videoUrl: 'https://youtube.com/watch?v=example10' },
-  { id: '11', name: 'Plancha', pattern: 'core', videoUrl: 'https://youtube.com/watch?v=example11' },
-  { id: '12', name: 'Crunch Abdominal', pattern: 'core', videoUrl: 'https://youtube.com/watch?v=example12' },
-  { id: '13', name: 'Farmer Walk', pattern: 'carry', videoUrl: 'https://youtube.com/watch?v=example13' },
-  { id: '14', name: 'Pallof Press', pattern: 'rotation', videoUrl: 'https://youtube.com/watch?v=example14' },
-];
 
 const createEmptyDay = (dayNumber: number): TrainingDay => ({
   id: crypto.randomUUID(),
@@ -59,12 +45,57 @@ const initialRoutinePlan: RoutinePlan = {
   days: [createEmptyDay(1)],
 };
 
-export const useExerciseStore = create<ExerciseStore>((set) => ({
-  exercises: defaultExercises,
+export const useExerciseStore = create<ExerciseStore>((set, get) => ({
+  // Empezamos con una lista vacía, porque la llenaremos desde la DB
+  exercises: [],
   routinePlan: initialRoutinePlan,
 
-  addExercise: (exercise) =>
-    set((state) => ({ exercises: [...state.exercises, exercise] })),
+  // --- NUEVA LÓGICA CON ELECTRON ---
+  fetchExercises: async () => {
+    try {
+      // Pedimos los datos a SQLite a través de IPC
+      const dbExercises = await window.api.getExercises();
+      
+      // Mapeamos los datos de Prisma al formato que espera tu Frontend
+      const formattedExercises = dbExercises.map((dbEx: any) => ({
+        id: String(dbEx.id),
+        name: dbEx.name,
+        pattern: dbEx.pattern.name, // Prisma nos devuelve la relación
+        videoUrl: dbEx.videoUrl || undefined
+      }));
+
+      set({ exercises: formattedExercises });
+    } catch (error) {
+      console.error("Error al obtener ejercicios de la DB:", error);
+    }
+  },
+
+  addExercise: async (exercise) => {
+    try {
+      // 1. Guardar en Base de Datos (SQLite)
+      const result = await window.api.createExercise({
+        name: exercise.name,
+        videoUrl: exercise.videoUrl,
+        patternName: exercise.pattern // Lo que el usuario eligió en el select
+      });
+
+      if (result.success && result.exercise) {
+        // 2. Si se guardó en BD, lo agregamos a la pantalla
+        const newExercise: Exercise = {
+          id: String(result.exercise.id),
+          name: result.exercise.name,
+          pattern: exercise.pattern, // Mantenemos el nombre para la UI
+          videoUrl: result.exercise.videoUrl || undefined
+        };
+        set((state) => ({ exercises: [...state.exercises, newExercise] }));
+      } else {
+        console.error("Error guardando:", result.error);
+      }
+    } catch (error) {
+      console.error("Fallo la conexión con BD:", error);
+    }
+  },
+  // ---------------------------------
 
   updateExercise: (id, updates) =>
     set((state) => ({
