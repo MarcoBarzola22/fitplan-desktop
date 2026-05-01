@@ -36,14 +36,21 @@ export default function RoutineBuilder() {
       clientName: routinePlan.clientName,
       days: routinePlan.days.map((day) => ({
         dayNumber: day.dayNumber,
+        // Agregamos los calentamientos buscando su nombre y video reales
+        warmups: (day.warmups || []).map((w) => {
+          const exerciseDef = exercises.find((e) => e.id === w.exerciseId);
+          return {
+            exerciseName: exerciseDef?.name || '',
+            videoUrl: exerciseDef?.videoUrl || '',
+            reps: w.reps,
+          };
+        }),
         exercises: day.exercises.map((ex) => {
-          // Buscamos los datos reales del ejercicio usando su ID
           const exerciseDef = exercises.find((e) => e.id === ex.exerciseId);
-          
           return {
             patternName: ex.patternFilter ? patternLabels[ex.patternFilter as keyof typeof patternLabels] : '',
             exerciseName: exerciseDef?.name || '',
-            videoUrl: exerciseDef?.videoUrl || '', // Pasamos el video para que sea clickeable
+            videoUrl: exerciseDef?.videoUrl || '',
             sets: ex.sets,
             reps: ex.reps,
             rest: ex.rest,

@@ -38,7 +38,8 @@ export const setupDBHandlers = () => {
         data: {
           name: data.name,
           videoUrl: data.videoUrl,
-          patternId: pattern.id
+          patternId: pattern.id,
+          isWarmup: data.isWarmup || false
         }
       })
       

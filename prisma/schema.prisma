@@ -16,14 +16,16 @@ model Pattern {
 }
 
 model Exercise {
-  id          Int       @id @default(autoincrement())
-  name        String    // Ej: "Press Banca"
+  id          Int           @id @default(autoincrement())
+  name        String
   videoUrl    String?
+  pattern     Pattern       @relation(fields: [patternId], references: [id])
   patternId   Int
-  pattern     Pattern   @relation(fields: [patternId], references: [id])
+  isWarmup    Boolean       @default(false)
+  createdAt   DateTime      @default(now())
   
-  // Relación con las rutinas donde se use este ejercicio
-  routineItems RoutineItem[]
+  // Agregamos esto para que Prisma no se queje de la relación
+  routineItems RoutineItem[] 
 }
 
 // --- CONSTRUCTOR DE RUTINAS ---

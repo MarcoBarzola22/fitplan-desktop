@@ -3,6 +3,13 @@ export interface Exercise {
   name: string;
   pattern: Pattern;
   videoUrl: string;
+  isWarmup?: boolean;
+}
+
+export interface WarmupExercise {
+  id: string;
+  exerciseId: string; // Ej: "Movilidad 90-90 cadera"
+  reps: string;     // Ej: "x12" o "8-10"
 }
 
 export interface DayExercise {
@@ -20,6 +27,7 @@ export interface TrainingDay {
   id: string;
   dayNumber: number;
   exercises: DayExercise[];
+  warmups: WarmupExercise[];
 }
 
 export interface RoutinePlan {
@@ -36,7 +44,9 @@ export type Pattern =
   | 'core'
   | 'carry'
   | 'rotation'
-  | 'cardio';
+  | 'cardio'
+  | 'warmup'    
+  | 'mobility'; 
 
 export const patternLabels: Record<Pattern, string> = {
   push: 'Empuje',
@@ -47,6 +57,8 @@ export const patternLabels: Record<Pattern, string> = {
   carry: 'Acarreo',
   rotation: 'Rotación',
   cardio: 'Cardio',
+  warmup: 'Calentamiento', 
+  mobility: 'Movilidad', 
 };
 
 export const patternColors: Record<Pattern, string> = {
@@ -58,4 +70,6 @@ export const patternColors: Record<Pattern, string> = {
   carry: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
   rotation: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
   cardio: 'bg-green-500/20 text-green-400 border-green-500/30',
+  warmup: 'bg-orange-500/10 text-orange-500', 
+  mobility: 'bg-blue-500/10 text-blue-500',
 };

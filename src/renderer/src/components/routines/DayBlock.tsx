@@ -1,5 +1,13 @@
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { DayExerciseRow } from './DayExerciseRow';
 import { TrainingDay } from '@/types/exercise';
 import { useExerciseStore } from '@/store/exerciseStore';
@@ -9,46 +17,96 @@ interface DayBlockProps {
 }
 
 export function DayBlock({ day }: DayBlockProps) {
-  const { addExerciseToDay } = useExerciseStore();
+  const { 
+    exercises, // Traemos la biblioteca de la DB
+    addExerciseToDay, 
+    addWarmupToDay, 
+    updateWarmupInDay, 
+    removeWarmupFromDay 
+  } = useExerciseStore();
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden animate-fade-in">
-      {/* Day Header - Tab Style */}
-      <div className="bg-muted/70 border-b border-border px-4 py-3">
+      <div className="bg-muted/70 border-b border-border px-4 py-3 flex justify-between items-center">
         <h3 className="text-lg font-semibold text-foreground">
           DÍA {day.dayNumber}
         </h3>
       </div>
 
-      {/* Exercise Table */}
+      {/* --- SECCIÓN: CALENTAMIENTO Y MOVILIDAD --- */}
+      <div className="p-4 border-b border-border bg-blue-50/10 dark:bg-blue-900/10">
+        <div className="flex justify-between items-center mb-3">
+          <h4 className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+            CALENTAMIENTO Y ZONA MEDIA
+          </h4>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+            onClick={() => addWarmupToDay(day.id)}
+          >
+            <Plus className="h-3 w-3 mr-1" />
+            Añadir Movilidad
+          </Button>
+        </div>
+        
+        {(!day.warmups || day.warmups.length === 0) ? (
+          <p className="text-xs text-muted-foreground italic mb-2">No hay calentamientos definidos.</p>
+        ) : (
+          <div className="space-y-2">
+            {day.warmups.map((warmup) => (
+              <div key={warmup.id} className="flex gap-2 items-center">
+                
+                {/* Ahora es un Select conectado a la BD */}
+                <Select
+                  value={warmup.exerciseId}
+                  onValueChange={(val) => updateWarmupInDay(day.id, warmup.id, { exerciseId: val })}
+                >
+                  <SelectTrigger className="h-8 text-sm flex-1 bg-background border-border">
+                    <SelectValue placeholder="Selecciona un ejercicio..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border">
+                    {exercises.map((ex) => (
+                      <SelectItem key={ex.id} value={ex.id} className="text-foreground">
+                        {ex.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Input 
+                  placeholder="Reps (ej: 8-10)" 
+                  className="h-8 text-sm w-32 bg-background border-border text-foreground"
+                  value={warmup.reps}
+                  onChange={(e) => updateWarmupInDay(day.id, warmup.id, { reps: e.target.value })}
+                />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  onClick={() => removeWarmupFromDay(day.id, warmup.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* --- TABLA PRINCIPAL --- */}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[800px]">
           <thead>
             <tr className="bg-muted/40 border-b border-border">
-              <th className="p-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider w-32">
-                Patrón
-              </th>
-              <th className="p-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider min-w-[200px]">
-                Ejercicio
-              </th>
-              <th className="p-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider w-20">
-                Sets
-              </th>
-              <th className="p-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider w-24">
-                Reps
-              </th>
-              <th className="p-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider w-20">
-                Rest (s)
-              </th>
-              <th className="p-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider w-24">
-                Weight
-              </th>
-              <th className="p-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider w-16">
-                RPE
-              </th>
-              <th className="p-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider w-16">
-                Acción
-              </th>
+              <th className="p-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider w-32">Patrón</th>
+              <th className="p-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider min-w-[200px]">Ejercicio</th>
+              <th className="p-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider w-20">Sets</th>
+              <th className="p-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider w-24">Reps</th>
+              <th className="p-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider w-20">Rest (s)</th>
+              <th className="p-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider w-24">Weight</th>
+              <th className="p-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider w-16">RPE</th>
+              <th className="p-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider w-16">Acción</th>
             </tr>
           </thead>
           <tbody>
@@ -61,18 +119,13 @@ export function DayBlock({ day }: DayBlockProps) {
               </tr>
             ) : (
               day.exercises.map((exercise) => (
-                <DayExerciseRow
-                  key={exercise.id}
-                  dayId={day.id}
-                  exercise={exercise}
-                />
+                <DayExerciseRow key={exercise.id} dayId={day.id} exercise={exercise} />
               ))
             )}
           </tbody>
         </table>
       </div>
 
-      {/* Add Exercise Button */}
       <div className="p-4 border-t border-border bg-muted/20">
         <Button
           variant="outline"
@@ -80,7 +133,7 @@ export function DayBlock({ day }: DayBlockProps) {
           onClick={() => addExerciseToDay(day.id)}
         >
           <Plus className="h-4 w-4" />
-          Agregar Ejercicio a este Día
+          Agregar Ejercicio Principal
         </Button>
       </div>
     </div>

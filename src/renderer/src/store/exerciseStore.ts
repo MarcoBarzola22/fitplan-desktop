@@ -1,32 +1,31 @@
 import { create } from 'zustand';
-import { Exercise, DayExercise, TrainingDay, RoutinePlan } from '@/types/exercise';
+import { Exercise, DayExercise, TrainingDay, RoutinePlan, WarmupExercise } from '@/types/exercise';
 
 interface ExerciseStore {
   exercises: Exercise[];
   routinePlan: RoutinePlan;
   
-  // Acciones asíncronas para la Base de Datos
   fetchExercises: () => Promise<void>;
   
-  // Exercise library actions
   addExercise: (exercise: Exercise) => Promise<void>;
   updateExercise: (id: string, exercise: Partial<Exercise>) => void;
   deleteExercise: (id: string) => void;
   
-  // Routine plan actions
   setClientName: (name: string) => void;
   setDaysPerWeek: (days: number) => void;
+  
+  // --- Acciones de Ejercicios Principales ---
   addExerciseToDay: (dayId: string) => void;
   updateDayExercise: (dayId: string, exerciseId: string, updates: Partial<DayExercise>) => void;
   removeExerciseFromDay: (dayId: string, exerciseId: string) => void;
+
+  // --- NUEVO: Acciones de Calentamiento/Movilidad ---
+  addWarmupToDay: (dayId: string) => void;
+  updateWarmupInDay: (dayId: string, warmupId: string, updates: Partial<WarmupExercise>) => void;
+  removeWarmupFromDay: (dayId: string, warmupId: string) => void;
+  
   clearRoutinePlan: () => void;
 }
-
-const createEmptyDay = (dayNumber: number): TrainingDay => ({
-  id: crypto.randomUUID(),
-  dayNumber,
-  exercises: [],
-});
 
 const createEmptyDayExercise = (): DayExercise => ({
   id: crypto.randomUUID(),
@@ -39,31 +38,40 @@ const createEmptyDayExercise = (): DayExercise => ({
   rpe: '',
 });
 
+// NUEVO: Creador de calentamientos vacíos
+const createEmptyWarmup = (): WarmupExercise => ({
+  id: crypto.randomUUID(),
+  exerciseId: '',
+  reps: '',
+});
+
+const createEmptyDay = (dayNumber: number): TrainingDay => ({
+  id: crypto.randomUUID(),
+  dayNumber,
+  exercises: [],
+  warmups: [], // Inicializamos el array de calentamientos
+});
+
 const initialRoutinePlan: RoutinePlan = {
   clientName: '',
   daysPerWeek: 3,
-  days: [createEmptyDay(1)],
+  days: [createEmptyDay(1), createEmptyDay(2), createEmptyDay(3)],
 };
 
-export const useExerciseStore = create<ExerciseStore>((set, get) => ({
-  // Empezamos con una lista vacía, porque la llenaremos desde la DB
+export const useExerciseStore = create<ExerciseStore>((set) => ({
   exercises: [],
   routinePlan: initialRoutinePlan,
 
-  // --- NUEVA LÓGICA CON ELECTRON ---
   fetchExercises: async () => {
     try {
-      // Pedimos los datos a SQLite a través de IPC
       const dbExercises = await window.api.getExercises();
-      
-      // Mapeamos los datos de Prisma al formato que espera tu Frontend
       const formattedExercises = dbExercises.map((dbEx: any) => ({
         id: String(dbEx.id),
         name: dbEx.name,
-        pattern: dbEx.pattern.name, // Prisma nos devuelve la relación
-        videoUrl: dbEx.videoUrl || undefined
+        pattern: dbEx.pattern.name,
+        videoUrl: dbEx.videoUrl || undefined,
+        isWarmup: dbEx.isWarmup || false
       }));
-
       set({ exercises: formattedExercises });
     } catch (error) {
       console.error("Error al obtener ejercicios de la DB:", error);
@@ -72,20 +80,20 @@ export const useExerciseStore = create<ExerciseStore>((set, get) => ({
 
   addExercise: async (exercise) => {
     try {
-      // 1. Guardar en Base de Datos (SQLite)
       const result = await window.api.createExercise({
         name: exercise.name,
         videoUrl: exercise.videoUrl,
-        patternName: exercise.pattern // Lo que el usuario eligió en el select
+        patternName: exercise.pattern,
+        isWarmup: exercise.isWarmup
       });
 
       if (result.success && result.exercise) {
-        // 2. Si se guardó en BD, lo agregamos a la pantalla
         const newExercise: Exercise = {
           id: String(result.exercise.id),
           name: result.exercise.name,
-          pattern: exercise.pattern, // Mantenemos el nombre para la UI
-          videoUrl: result.exercise.videoUrl || undefined
+          pattern: exercise.pattern,
+          videoUrl: result.exercise.videoUrl || undefined,
+          isWarmup: result.exercise.isWarmup
         };
         set((state) => ({ exercises: [...state.exercises, newExercise] }));
       } else {
@@ -95,7 +103,6 @@ export const useExerciseStore = create<ExerciseStore>((set, get) => ({
       console.error("Fallo la conexión con BD:", error);
     }
   },
-  // ---------------------------------
 
   updateExercise: (id, updates) =>
     set((state) => ({
@@ -114,10 +121,27 @@ export const useExerciseStore = create<ExerciseStore>((set, get) => ({
       routinePlan: { ...state.routinePlan, clientName: name },
     })),
 
-  setDaysPerWeek: (days) =>
-    set((state) => ({
-      routinePlan: { ...state.routinePlan, daysPerWeek: days },
-    })),
+  setDaysPerWeek: (daysCount) =>
+    set((state) => {
+      const currentDays = state.routinePlan.days;
+      let newDays = [...currentDays];
+
+      if (daysCount > currentDays.length) {
+        for (let i = currentDays.length + 1; i <= daysCount; i++) {
+          newDays.push(createEmptyDay(i));
+        }
+      } else if (daysCount < currentDays.length) {
+        newDays = newDays.slice(0, daysCount);
+      }
+
+      return {
+        routinePlan: { 
+          ...state.routinePlan, 
+          daysPerWeek: daysCount, 
+          days: newDays 
+        },
+      };
+    }),
 
   addExerciseToDay: (dayId) =>
     set((state) => ({
@@ -160,12 +184,54 @@ export const useExerciseStore = create<ExerciseStore>((set, get) => ({
       },
     })),
 
+  // --- LÓGICA DE CALENTAMIENTOS ---
+  addWarmupToDay: (dayId) =>
+    set((state) => ({
+      routinePlan: {
+        ...state.routinePlan,
+        days: state.routinePlan.days.map((day) =>
+          day.id === dayId
+            ? { ...day, warmups: [...(day.warmups || []), createEmptyWarmup()] }
+            : day
+        ),
+      },
+    })),
+
+  updateWarmupInDay: (dayId, warmupId, updates) =>
+    set((state) => ({
+      routinePlan: {
+        ...state.routinePlan,
+        days: state.routinePlan.days.map((day) =>
+          day.id === dayId
+            ? {
+                ...day,
+                warmups: day.warmups.map((w) =>
+                  w.id === warmupId ? { ...w, ...updates } : w
+                ),
+              }
+            : day
+        ),
+      },
+    })),
+
+  removeWarmupFromDay: (dayId, warmupId) =>
+    set((state) => ({
+      routinePlan: {
+        ...state.routinePlan,
+        days: state.routinePlan.days.map((day) =>
+          day.id === dayId
+            ? { ...day, warmups: day.warmups.filter((w) => w.id !== warmupId) }
+            : day
+        ),
+      },
+    })),
+
   clearRoutinePlan: () =>
     set({
       routinePlan: {
         clientName: '',
         daysPerWeek: 3,
-        days: [createEmptyDay(1)],
+        days: [createEmptyDay(1), createEmptyDay(2), createEmptyDay(3)],
       },
     }),
 }));
