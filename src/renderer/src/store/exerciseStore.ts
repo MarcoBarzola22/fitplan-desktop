@@ -43,6 +43,8 @@ const createEmptyWarmup = (): WarmupExercise => ({
   id: crypto.randomUUID(),
   exerciseId: '',
   reps: '',
+  sets: '',   
+  weight: '',
 });
 
 const createEmptyDay = (dayNumber: number): TrainingDay => ({

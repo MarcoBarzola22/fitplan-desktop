@@ -20,9 +20,19 @@ interface DayExerciseRowProps {
 export function DayExerciseRow({ dayId, exercise }: DayExerciseRowProps) {
   const { exercises, updateDayExercise, removeExerciseFromDay } = useExerciseStore();
 
+  // 1. Filtramos para que SOLO aparezcan los patrones principales en el 1er desplegable
+  const mainPatternOptions = (Object.keys(patternLabels) as Pattern[]).filter(
+    (p) => p !== 'warmup' && p !== 'mobility'
+  );
+
+  // 2. Filtramos la lista de ejercicios para que NUNCA incluya calentamientos
   const filteredExercises = useMemo(() => {
-    if (!exercise.patternFilter) return exercises;
-    return exercises.filter((e) => e.pattern === exercise.patternFilter);
+    // Primero separamos solo los principales
+    const mainExercises = exercises.filter((e) => !e.isWarmup);
+    
+    // Luego filtramos por patrón si el usuario seleccionó uno
+    if (!exercise.patternFilter) return mainExercises;
+    return mainExercises.filter((e) => e.pattern === exercise.patternFilter);
   }, [exercises, exercise.patternFilter]);
 
   const selectedExercise = exercises.find((e) => e.id === exercise.exerciseId);
@@ -48,7 +58,9 @@ export function DayExerciseRow({ dayId, exercise }: DayExerciseRowProps) {
           </SelectTrigger>
           <SelectContent className="bg-popover border-border">
             <SelectItem value="all" className="text-foreground">Todos</SelectItem>
-            {(Object.keys(patternLabels) as Pattern[]).map((p) => (
+            
+            {/* Usamos nuestra lista filtrada de patrones principales */}
+            {mainPatternOptions.map((p) => (
               <SelectItem key={p} value={p} className="text-foreground">
                 {patternLabels[p]}
               </SelectItem>
@@ -68,6 +80,8 @@ export function DayExerciseRow({ dayId, exercise }: DayExerciseRowProps) {
               <SelectItem value="none" className="text-muted-foreground">
                 Seleccionar ejercicio...
               </SelectItem>
+              
+              {/* Usamos nuestra lista de ejercicios que ya NO tiene calentamientos */}
               {filteredExercises.map((ex) => (
                 <SelectItem key={ex.id} value={ex.id} className="text-foreground">
                   {ex.name}

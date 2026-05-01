@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { DayExerciseRow } from './DayExerciseRow';
-import { TrainingDay } from '@/types/exercise';
+import { TrainingDay, patternLabels } from '@/types/exercise'; // IMPORTANTE: patternLabels
 import { useExerciseStore } from '@/store/exerciseStore';
 
 interface DayBlockProps {
@@ -18,12 +18,15 @@ interface DayBlockProps {
 
 export function DayBlock({ day }: DayBlockProps) {
   const { 
-    exercises, // Traemos la biblioteca de la DB
+    exercises, 
     addExerciseToDay, 
     addWarmupToDay, 
     updateWarmupInDay, 
     removeWarmupFromDay 
   } = useExerciseStore();
+
+  // FILTRO MÁGICO: Aquí solo pasan los que son de calentamiento
+  const warmupExercises = exercises.filter(e => e.isWarmup);
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden animate-fade-in">
@@ -54,42 +57,67 @@ export function DayBlock({ day }: DayBlockProps) {
           <p className="text-xs text-muted-foreground italic mb-2">No hay calentamientos definidos.</p>
         ) : (
           <div className="space-y-2">
-            {day.warmups.map((warmup) => (
-              <div key={warmup.id} className="flex gap-2 items-center">
-                
-                {/* Ahora es un Select conectado a la BD */}
-                <Select
-                  value={warmup.exerciseId}
-                  onValueChange={(val) => updateWarmupInDay(day.id, warmup.id, { exerciseId: val })}
-                >
-                  <SelectTrigger className="h-8 text-sm flex-1 bg-background border-border">
-                    <SelectValue placeholder="Selecciona un ejercicio..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border-border">
-                    {exercises.map((ex) => (
-                      <SelectItem key={ex.id} value={ex.id} className="text-foreground">
-                        {ex.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {day.warmups.map((warmup) => {
+              // Buscamos el ejercicio para saber si es "Calentamiento" o "Movilidad"
+              const selectedEx = exercises.find(e => e.id === warmup.exerciseId);
+              const patternName = selectedEx ? patternLabels[selectedEx.pattern as keyof typeof patternLabels] : 'Tipo';
 
-                <Input 
-                  placeholder="Reps (ej: 8-10)" 
-                  className="h-8 text-sm w-32 bg-background border-border text-foreground"
-                  value={warmup.reps}
-                  onChange={(e) => updateWarmupInDay(day.id, warmup.id, { reps: e.target.value })}
-                />
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                  onClick={() => removeWarmupFromDay(day.id, warmup.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+              return (
+                <div key={warmup.id} className="flex gap-2 items-center">
+                  
+                  {/* ETIQUETA DE TIPO (Se llena sola al elegir el ejercicio) */}
+                  <div className="w-28 text-xs font-medium text-blue-700 bg-blue-100 dark:bg-blue-900/40 dark:text-blue-300 px-2 py-1.5 rounded text-center truncate shrink-0">
+                    {patternName}
+                  </div>
+
+                  {/* SELECTOR (Ya filtrado) */}
+                  <Select
+                    value={warmup.exerciseId}
+                    onValueChange={(val) => updateWarmupInDay(day.id, warmup.id, { exerciseId: val })}
+                  >
+                    <SelectTrigger className="h-8 text-sm flex-1 bg-background border-border">
+                      <SelectValue placeholder="Selecciona un ejercicio..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border-border">
+                      {warmupExercises.map((ex) => (
+                        <SelectItem key={ex.id} value={ex.id} className="text-foreground">
+                          {ex.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {/* NUEVOS INPUTS */}
+                  <Input 
+                    placeholder="Series" 
+                    className="h-8 text-sm w-16 bg-background border-border text-foreground text-center"
+                    value={warmup.sets || ''}
+                    onChange={(e) => updateWarmupInDay(day.id, warmup.id, { sets: e.target.value })}
+                  />
+                  <Input 
+                    placeholder="Reps" 
+                    className="h-8 text-sm w-20 bg-background border-border text-foreground text-center"
+                    value={warmup.reps}
+                    onChange={(e) => updateWarmupInDay(day.id, warmup.id, { reps: e.target.value })}
+                  />
+                  <Input 
+                    placeholder="Peso" 
+                    className="h-8 text-sm w-20 bg-background border-border text-foreground text-center"
+                    value={warmup.weight || ''}
+                    onChange={(e) => updateWarmupInDay(day.id, warmup.id, { weight: e.target.value })}
+                  />
+
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                    onClick={() => removeWarmupFromDay(day.id, warmup.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

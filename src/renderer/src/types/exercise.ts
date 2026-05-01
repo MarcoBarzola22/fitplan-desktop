@@ -8,8 +8,10 @@ export interface Exercise {
 
 export interface WarmupExercise {
   id: string;
-  exerciseId: string; // Ej: "Movilidad 90-90 cadera"
-  reps: string;     // Ej: "x12" o "8-10"
+  exerciseId: string; 
+  reps: string;     
+  sets?: string;   
+  weight?: string;
 }
 
 export interface DayExercise {
