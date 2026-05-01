@@ -6,6 +6,7 @@ const api = {
   getExercises: () => ipcRenderer.invoke('db:get-exercises'),
   createExercise: (data: any) => ipcRenderer.invoke('db:create-exercise', data),
   getPatterns: () => ipcRenderer.invoke('db:get-patterns'),
+  saveRoutine: (routineData: any) => ipcRenderer.invoke('db:save-routine', routineData),
   exportExcel: (data: any) => ipcRenderer.invoke('export:excel', data),
 }
 

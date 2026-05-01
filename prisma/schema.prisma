@@ -31,36 +31,52 @@ model Exercise {
 // --- CONSTRUCTOR DE RUTINAS ---
 
 model Routine {
-  id          Int       @id @default(autoincrement())
+  id          Int          @id @default(autoincrement())
   clientName  String
-  daysCount   Int       // Cuántos días tiene la rutina (ej: 3)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  daysCount   Int          
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   
   days        RoutineDay[]
 }
 
 model RoutineDay {
   id        Int           @id @default(autoincrement())
-  dayNumber Int           // 1, 2, 3...
+  dayNumber Int           
   routineId Int
   routine   Routine       @relation(fields: [routineId], references: [id], onDelete: Cascade)
-  items     RoutineItem[]
+  
+  // Separación clara en la DB
+  exercises RoutineItem[]
+  warmups   WarmupItem[]  // <--- Relación para los calentamientos
 }
 
+// Para los ejercicios principales de la tabla
 model RoutineItem {
-  id          Int         @id @default(autoincrement())
-  
-  // Datos del ejercicio en ese momento
-  sets        String?     // String para permitir rangos ej: "3-4"
-  reps        String?     // Ej: "10-12"
-  rest        String?     // Ej: "90s"
-  weight      String?     // Opcional
-  rpe         String?     // Opcional
-  
-  // Relaciones
-  dayId       Int
-  day         RoutineDay  @relation(fields: [dayId], references: [id], onDelete: Cascade)
-  exerciseId  Int
-  exercise    Exercise    @relation(fields: [exerciseId], references: [id])
+  id         Int        @id @default(autoincrement())
+  sets       String?    
+  reps       String?    
+  rest       String?    
+  weight     String?    
+  rpe        String?    
+  order      Int        @default(0) // Para mantener el orden que elija el usuario
+
+  dayId      Int
+  day        RoutineDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  exerciseId Int
+  exercise   Exercise   @relation(fields: [exerciseId], references: [id])
+}
+
+// Para la sección azul de Calentamiento/Movilidad
+model WarmupItem {
+  id         Int        @id @default(autoincrement())
+  sets       String?    
+  reps       String?    
+  weight     String?    
+  order      Int        @default(0)
+
+  dayId      Int
+  day        RoutineDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  exerciseId Int
+  exercise   Exercise   @relation(fields: [exerciseId], references: [id])
 }

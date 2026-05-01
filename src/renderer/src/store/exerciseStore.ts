@@ -25,6 +25,7 @@ interface ExerciseStore {
   removeWarmupFromDay: (dayId: string, warmupId: string) => void;
   
   clearRoutinePlan: () => void;
+  saveRoutine: () => Promise<{ success: boolean; error?: string }>;
 }
 
 const createEmptyDayExercise = (): DayExercise => ({
@@ -60,7 +61,7 @@ const initialRoutinePlan: RoutinePlan = {
   days: [createEmptyDay(1), createEmptyDay(2), createEmptyDay(3)],
 };
 
-export const useExerciseStore = create<ExerciseStore>((set) => ({
+export const useExerciseStore = create<ExerciseStore>((set,get) => ({
   exercises: [],
   routinePlan: initialRoutinePlan,
 
@@ -236,4 +237,21 @@ export const useExerciseStore = create<ExerciseStore>((set) => ({
         days: [createEmptyDay(1), createEmptyDay(2), createEmptyDay(3)],
       },
     }),
+    // --- GUARDAR RUTINA EN DB ---
+  saveRoutine: async () => {
+    const { routinePlan } = get(); // Necesitamos 'get' para obtener el estado actual
+    
+    // Validación básica: que tenga nombre de cliente
+    if (!routinePlan.clientName.trim()) {
+      return { success: false, error: "Debes ingresar el nombre del cliente" };
+    }
+
+    try {
+      const result = await window.api.saveRoutine(routinePlan);
+      return result;
+    } catch (error) {
+      console.error("Error al persistir rutina:", error);
+      return { success: false, error: "Error de conexión con la base de datos" };
+    }
+  },
 }));
