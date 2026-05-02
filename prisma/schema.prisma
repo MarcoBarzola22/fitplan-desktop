@@ -1,82 +1,83 @@
-generator client {
-  provider = "prisma-client-js"
-}
+  generator client {
+    provider = "prisma-client-js"
+  }
 
-datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
-}
+  datasource db {
+    provider = "sqlite"
+    url      = env("DATABASE_URL")
+  }
 
-// --- BIBLIOTECA DE EJERCICIOS ---
+  // --- BIBLIOTECA DE EJERCICIOS ---
 
-model Pattern {
-  id        Int        @id @default(autoincrement())
-  name      String     @unique // Ej: "Tracción", "Empuje", "Pierna"
-  exercises Exercise[]
-}
+  model Pattern {
+    id        Int        @id @default(autoincrement())
+    name      String     @unique // Ej: "Tracción", "Empuje", "Pierna"
+    exercises Exercise[]
+  }
 
-model Exercise {
-  id          Int           @id @default(autoincrement())
-  name        String
-  videoUrl    String?
-  pattern     Pattern       @relation(fields: [patternId], references: [id])
-  patternId   Int
-  isWarmup    Boolean       @default(false)
-  createdAt   DateTime      @default(now())
-  
-  // Agregamos esto para que Prisma no se queje de la relación
-  routineItems RoutineItem[] 
-}
+ model Exercise {
+    id        Int      @id @default(autoincrement())
+    name      String
+    videoUrl  String?
+    pattern   Pattern  @relation(fields: [patternId], references: [id])
+    patternId Int
+    isWarmup  Boolean  @default(false)
+    createdAt DateTime @default(now())
 
-// --- CONSTRUCTOR DE RUTINAS ---
+    
+    routineItems RoutineItem[]
+    warmupItems  WarmupItem[] 
+  }
 
-model Routine {
-  id          Int          @id @default(autoincrement())
-  clientName  String
-  daysCount   Int          
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  
-  days        RoutineDay[]
-}
+  // --- CONSTRUCTOR DE RUTINAS ---
 
-model RoutineDay {
-  id        Int           @id @default(autoincrement())
-  dayNumber Int           
-  routineId Int
-  routine   Routine       @relation(fields: [routineId], references: [id], onDelete: Cascade)
-  
-  // Separación clara en la DB
-  exercises RoutineItem[]
-  warmups   WarmupItem[]  // <--- Relación para los calentamientos
-}
+  model Routine {
+    id         Int      @id @default(autoincrement())
+    clientName String
+    daysCount  Int
+    createdAt  DateTime @default(now())
+    updatedAt  DateTime @updatedAt
 
-// Para los ejercicios principales de la tabla
-model RoutineItem {
-  id         Int        @id @default(autoincrement())
-  sets       String?    
-  reps       String?    
-  rest       String?    
-  weight     String?    
-  rpe        String?    
-  order      Int        @default(0) // Para mantener el orden que elija el usuario
+    days RoutineDay[]
+  }
 
-  dayId      Int
-  day        RoutineDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
-  exerciseId Int
-  exercise   Exercise   @relation(fields: [exerciseId], references: [id])
-}
+  model RoutineDay {
+    id        Int     @id @default(autoincrement())
+    dayNumber Int
+    routineId Int
+    routine   Routine @relation(fields: [routineId], references: [id], onDelete: Cascade)
 
-// Para la sección azul de Calentamiento/Movilidad
-model WarmupItem {
-  id         Int        @id @default(autoincrement())
-  sets       String?    
-  reps       String?    
-  weight     String?    
-  order      Int        @default(0)
+    // Separación clara en la DB
+    exercises RoutineItem[]
+    warmups   WarmupItem[] // <--- Relación para los calentamientos
+  }
 
-  dayId      Int
-  day        RoutineDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
-  exerciseId Int
-  exercise   Exercise   @relation(fields: [exerciseId], references: [id])
-}
+  // Para los ejercicios principales de la tabla
+  model RoutineItem {
+    id     Int     @id @default(autoincrement())
+    sets   String?
+    reps   String?
+    rest   String?
+    weight String?
+    rpe    String?
+    order  Int     @default(0) // Para mantener el orden que elija el usuario
+
+    dayId      Int
+    day        RoutineDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+    exerciseId Int
+    exercise   Exercise   @relation(fields: [exerciseId], references: [id])
+  }
+
+  // Para la sección azul de Calentamiento/Movilidad
+  model WarmupItem {
+    id     Int     @id @default(autoincrement())
+    sets   String?
+    reps   String?
+    weight String?
+    order  Int     @default(0)
+
+    dayId      Int
+    day        RoutineDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+    exerciseId Int
+    exercise   Exercise   @relation(fields: [exerciseId], references: [id])
+  }

@@ -1,16 +1,24 @@
 appId: com.electron.app
 productName: fitplan-desktop
+asar: false
 directories:
   buildResources: build
 files:
+  - "**/*"
+  - "node_modules/.prisma/**/*"
+  - "node_modules/@prisma/client/**/*"
   - '!**/.vscode/*'
   - '!src/*'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
-asarUnpack:
-  - resources/**
+extraResources:
+  - "local.db"
+  - from: "node_modules/.prisma"
+    to: "app/node_modules/.prisma"
+  - from: "node_modules/@prisma/client"
+    to: "app/node_modules/@prisma/client"
 win:
   executableName: fitplan-desktop
 nsis:

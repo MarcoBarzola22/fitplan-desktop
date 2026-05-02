@@ -1,7 +1,28 @@
 import { PrismaClient } from '@prisma/client'
-import { ipcMain } from 'electron'
+import { ipcMain, app } from 'electron'
+import * as fs from 'fs'
+import * as path from 'path'
 
-const prisma = new PrismaClient()
+// Definimos la ruta dinámica para la base de datos en producción
+// Esto guarda el archivo en C:\Users\[Usuario]\AppData\Roaming\fitplan-desktop\
+const dbPath = path.join(app.getPath('userData'), 'local.db')
+
+// Lógica de copiado: si la app está instalada y no existe la DB, la copiamos del molde original
+if (app.isPackaged && !fs.existsSync(dbPath)) {
+  const dbTemplate = path.join(process.resourcesPath, 'local.db')
+  if (fs.existsSync(dbTemplate)) {
+    fs.copyFileSync(dbTemplate, dbPath)
+  }
+}
+
+// Inicializamos Prisma forzándolo a usar la ruta dinámica
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: app.isPackaged ? `file:${dbPath}` : process.env.DATABASE_URL
+    }
+  }
+})
 
 export const setupDBHandlers = () => {
   // --- BIBLIOTECA DE EJERCICIOS ---
