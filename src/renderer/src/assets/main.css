@@ -6,152 +6,75 @@
 
 @layer base {
   :root {
-    --background: 220 13% 18%;
-    --foreground: 210 20% 98%;
-
-    --card: 220 13% 14%;
-    --card-foreground: 210 20% 98%;
-
-    --popover: 220 13% 12%;
-    --popover-foreground: 210 20% 98%;
-
-    --primary: 217 91% 60%;
-    --primary-foreground: 210 20% 98%;
-
-    --secondary: 220 13% 22%;
-    --secondary-foreground: 210 20% 90%;
-
-    --muted: 220 13% 25%;
-    --muted-foreground: 215 16% 60%;
-
-    --accent: 217 91% 25%;
-    --accent-foreground: 217 91% 80%;
-
-    --destructive: 0 62% 50%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 220 13% 26%;
-    --input: 220 13% 22%;
-    --ring: 217 91% 60%;
-
+    /* --- LIGHT MODE (Gimnasio Clean) --- */
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 98%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    
+    --primary: 24 95% 53%; /* Naranja Energía */
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+    
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 24 95% 53%;
     --radius: 0.5rem;
 
-    --sidebar-background: 220 13% 10%;
-    --sidebar-foreground: 215 20% 75%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 13% 18%;
-    --sidebar-accent-foreground: 210 20% 98%;
-    --sidebar-border: 220 13% 20%;
-    --sidebar-ring: 217 91% 60%;
-
-    /* Custom tokens */
-    --success: 142 76% 36%;
-    --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-
-    /* Table tokens - spreadsheet style */
-    --table-header: 220 13% 20%;
-    --table-row: 220 13% 16%;
-    --table-row-alt: 220 13% 14%;
-    --table-border: 220 13% 24%;
+    --sidebar-background: 210 40% 98%;
+    --sidebar-foreground: 215 25% 27%;
+    --sidebar-border: 214 32% 91%;
   }
 
   .dark {
-    --background: 220 13% 18%;
-    --foreground: 210 20% 98%;
+    /* --- DARK MODE (El que ya teníamos) --- */
+    --background: 222 47% 7%;
+    --foreground: 213 31% 91%;
+    --card: 222 47% 10%;
+    --card-foreground: 213 31% 91%;
+    --popover: 222 47% 5%;
+    --popover-foreground: 213 31% 91%;
 
-    --card: 220 13% 14%;
-    --card-foreground: 210 20% 98%;
+    --primary: 24 95% 53%; 
+    --primary-foreground: 0 0% 100%;
 
-    --popover: 220 13% 12%;
-    --popover-foreground: 210 20% 98%;
-
-    --primary: 217 91% 60%;
-    --primary-foreground: 210 20% 98%;
-
-    --secondary: 220 13% 22%;
+    --secondary: 222 47% 15%;
     --secondary-foreground: 210 20% 90%;
 
-    --muted: 220 13% 25%;
-    --muted-foreground: 215 16% 60%;
+    --muted: 223 47% 20%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 217 91% 25%;
-    --accent-foreground: 217 91% 80%;
+    --accent: 222 47% 12%;
+    --accent-foreground: 210 20% 98%;
 
-    --destructive: 0 62% 50%;
-    --destructive-foreground: 0 0% 100%;
+    --border: 222 47% 15%;
+    --input: 222 47% 15%;
 
-    --border: 220 13% 26%;
-    --input: 220 13% 22%;
-    --ring: 217 91% 60%;
+    --sidebar-background: 222 47% 4%;
+    --sidebar-foreground: 215 20% 65%;
+    --sidebar-border: 222 47% 10%;
   }
 }
 
 @layer base {
   * {
     @apply border-border;
+    /* Esto hace que el cambio de colores no sea de golpe */
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
   }
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', sans-serif;
-  }
-}
-
-@layer utilities {
-  .scrollbar-thin {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--muted-foreground) / 0.3);
-    border-radius: 3px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background-color: hsl(var(--muted-foreground) / 0.5);
-  }
-
-  /* Animations */
-  .animate-fade-in {
-    animation: fadeIn 0.3s ease-out;
-  }
-
-  .animate-scale-in {
-    animation: scaleIn 0.2s ease-out;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(4px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes scaleIn {
-    from {
-      opacity: 0;
-      transform: scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
   }
 }

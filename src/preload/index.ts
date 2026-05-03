@@ -8,6 +8,10 @@ const api = {
   getPatterns: () => ipcRenderer.invoke('db:get-patterns'),
   saveRoutine: (routineData: any) => ipcRenderer.invoke('db:save-routine', routineData),
   exportExcel: (data: any) => ipcRenderer.invoke('export:excel', data),
+  createClient: (data: any) => ipcRenderer.invoke('create-client', data),
+getClients: () => ipcRenderer.invoke('get-clients'),
+updateClient: (data: any) => ipcRenderer.invoke('update-client', data),
+deleteClient: (id: string) => ipcRenderer.invoke('delete-client', id),
 }
 
 if (process.contextIsolated) {

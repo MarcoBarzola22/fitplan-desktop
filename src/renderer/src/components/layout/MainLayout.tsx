@@ -7,10 +7,13 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background transition-colors duration-300">
       <AppSidebar />
+      {/* ml-64 para dejar espacio al Sidebar fijo */}
       <main className="ml-64 min-h-screen">
-        <div className="p-6 lg:p-8">{children}</div>
+        <div className="p-8 animate-fade-in">
+          {children}
+        </div>
       </main>
     </div>
   );

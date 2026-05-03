@@ -3,11 +3,10 @@ import { ipcMain, app } from 'electron'
 import * as fs from 'fs'
 import * as path from 'path'
 
-// Definimos la ruta dinámica para la base de datos en producción
-// Esto guarda el archivo en C:\Users\[Usuario]\AppData\Roaming\fitplan-desktop\
+// 1. Configuración de la ruta de la base de datos (Persistencia en AppData)
 const dbPath = path.join(app.getPath('userData'), 'local.db')
 
-// Lógica de copiado: si la app está instalada y no existe la DB, la copiamos del molde original
+// Lógica para producción: si no existe la DB en AppData, la copiamos del molde original
 if (app.isPackaged && !fs.existsSync(dbPath)) {
   const dbTemplate = path.join(process.resourcesPath, 'local.db')
   if (fs.existsSync(dbTemplate)) {
@@ -15,7 +14,7 @@ if (app.isPackaged && !fs.existsSync(dbPath)) {
   }
 }
 
-// Inicializamos Prisma forzándolo a usar la ruta dinámica
+// 2. Inicialización de Prisma con la ruta dinámica
 const prisma = new PrismaClient({
   datasources: {
     db: {
@@ -24,9 +23,13 @@ const prisma = new PrismaClient({
   }
 })
 
+/**
+ * Registra todos los manejadores IPC para la comunicación entre 
+ * el Frontend (React) y el Backend (SQLite/Prisma).
+ */
 export const setupDBHandlers = () => {
+  
   // --- BIBLIOTECA DE EJERCICIOS ---
-
   ipcMain.handle('db:get-exercises', async () => {
     try {
       return await prisma.exercise.findMany({
@@ -34,7 +37,7 @@ export const setupDBHandlers = () => {
         orderBy: { name: 'asc' }
       })
     } catch (e) {
-      console.error(e)
+      console.error("Error al obtener ejercicios:", e)
       return []
     }
   })
@@ -67,25 +70,21 @@ export const setupDBHandlers = () => {
     }
   })
 
-  // --- PERSISTENCIA DE RUTINAS (LO NUEVO) ---
-
-  // 1. Guardar o Actualizar una Rutina Completa
+  // --- PERSISTENCIA DE RUTINAS (V2 con soporte para Clientes) ---
   ipcMain.handle('db:save-routine', async (_, routineData) => {
     try {
-      // Usamos una transacción para asegurar integridad total
       const result = await prisma.$transaction(async (tx) => {
-        // Creamos la cabecera de la rutina
         const routine = await tx.routine.create({
           data: {
             clientName: routineData.clientName,
             daysCount: routineData.daysPerWeek,
+            clientId: routineData.clientId || null, // Link opcional con el ID de cliente de la V2[cite: 1]
             days: {
               create: routineData.days.map((day: any) => ({
                 dayNumber: day.dayNumber,
-                // Guardamos los Ejercicios Principales
                 exercises: {
                   create: day.exercises
-                    .filter((ex: any) => ex.exerciseId) // Solo si seleccionó un ejercicio
+                    .filter((ex: any) => ex.exerciseId)
                     .map((ex: any, index: number) => ({
                       exerciseId: parseInt(ex.exerciseId),
                       sets: ex.sets,
@@ -96,7 +95,6 @@ export const setupDBHandlers = () => {
                       order: index
                     }))
                 },
-                // Guardamos los Calentamientos
                 warmups: {
                   create: day.warmups
                     .filter((w: any) => w.exerciseId)
@@ -122,7 +120,6 @@ export const setupDBHandlers = () => {
     }
   })
 
-  // 2. Obtener historial de rutinas (para la lista de "Mis Rutinas")
   ipcMain.handle('db:get-all-routines', async () => {
     try {
       return await prisma.routine.findMany({
@@ -138,4 +135,86 @@ export const setupDBHandlers = () => {
   ipcMain.handle('db:get-patterns', async () => {
     return await prisma.pattern.findMany({ orderBy: { name: 'asc' }})
   })
+
+  // --- MÓDULO DE CLIENTES V2[cite: 1] ---
+  
+  // Guardar un cliente nuevo
+  ipcMain.handle('create-client', async (_, data) => {
+    return await createClient(data)
+  })
+
+  // Obtener la lista de alumnos
+  ipcMain.handle('get-clients', async () => {
+    try {
+      const clients = await prisma.client.findMany({
+        orderBy: { name: 'asc' }
+      })
+      return { success: true, data: clients }
+    } catch (e) {
+      console.error("Error al obtener clientes:", e)
+      return { success: false, error: String(e) }
+    }
+  })
+
+  // Eliminar un cliente
+ipcMain.handle('delete-client', async (_, clientId: string) => {
+  try {
+    await prisma.client.delete({
+      where: { id: clientId }
+    });
+    return { success: true };
+  } catch (e) {
+    console.error("Error al eliminar cliente:", e);
+    return { success: false, error: "No se puede eliminar: el cliente tiene rutinas o pagos asociados." };
+  }
+});
+
+// Actualizar datos de un cliente
+ipcMain.handle('update-client', async (_, { id, ...data }) => {
+  try {
+    const updated = await prisma.client.update({
+      where: { id },
+      data: {
+        name: data.name,
+        phone: data.phone || null,
+        age: data.age && data.age !== "" ? parseInt(String(data.age)) : null,
+weight: data.weight && data.weight !== "" ? parseFloat(String(data.weight)) : null,
+height: data.height && data.height !== "" ? parseFloat(String(data.height)) : null,
+      }
+    });
+    return { success: true, data: updated };
+  } catch (e) {
+    console.error("Error al actualizar cliente:", e);
+    return { success: false, error: "Error al actualizar los datos." };
+  }
+});
+}
+
+/**
+ * Función lógica para la creación de clientes con tipos de datos correctos[cite: 1].
+ */
+export async function createClient(clientData: { 
+  name: string, 
+  phone?: string, 
+  email?: string, 
+  age?: string | number, 
+  weight?: string | number, 
+  height?: string | number 
+}) {
+  try {
+    const newClient = await prisma.client.create({
+      data: {
+        name: clientData.name,
+        phone: clientData.phone || null,
+        email: clientData.email || null,
+        age: clientData.age ? parseInt(String(clientData.age)) : null,
+        weight: clientData.weight ? parseFloat(String(clientData.weight)) : null,
+        height: clientData.height ? parseFloat(String(clientData.height)) : null,
+      },
+    })
+    return { success: true, data: newClient }
+  } catch (error) {
+    console.error("Error en Prisma createClient:", error)
+    return { success: false, error: "No se pudo guardar el cliente en la base de datos" }
+  }
 }

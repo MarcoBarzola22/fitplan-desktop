@@ -1,5 +1,4 @@
 import { FileSpreadsheet, Save, Trash2 } from 'lucide-react';
-import { MainLayout } from '@/components/layout/MainLayout';
 import { DayBlock } from '@/components/routines/DayBlock';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -74,66 +73,65 @@ export default function RoutineBuilder() {
         toast({ title: 'Error al exportar', description: result.error, variant: 'destructive' });
       }
     } catch (error) {
-      toast({ title: 'Error de sistema', description: 'Fallo la comunicación con Excel.', variant: 'destructive' });
+      toast({ title: 'Error de sistema', description: 'Falló la comunicación con Excel.', variant: 'destructive' });
     }
   };
 
   return (
-    <MainLayout>
-      <div className="animate-fade-in space-y-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Constructor de Rutinas</h1>
-            <p className="mt-1 text-muted-foreground">Planifica la rutina semanal de tu cliente</p>
+    <div className="animate-fade-in space-y-6">
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Constructor de Rutinas</h1>
+          <p className="mt-1 text-muted-foreground">Planifica la rutina semanal de tu cliente</p>
+        </div>
+        <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10" onClick={clearRoutinePlan}>
+          <Trash2 className="mr-1 h-4 w-4" />
+          Limpiar Todo
+        </Button>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="clientName">Nombre del Cliente</Label>
+            <Input
+              id="clientName"
+              placeholder="Ej: Juan Pérez"
+              value={routinePlan.clientName}
+              onChange={(e) => setClientName(e.target.value)}
+              className="bg-background"
+            />
           </div>
-          <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10" onClick={clearRoutinePlan}>
-            <Trash2 className="mr-1 h-4 w-4" />
-            Limpiar Todo
-          </Button>
-        </div>
-
-        <div className="rounded-lg border border-border bg-card p-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="clientName">Nombre del Cliente</Label>
-              <Input
-                id="clientName"
-                placeholder="Ej: Juan Pérez"
-                value={routinePlan.clientName}
-                onChange={(e) => setClientName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="daysPerWeek">Días por Semana</Label>
-              <Select value={String(routinePlan.daysPerWeek)} onValueChange={(v) => setDaysPerWeek(parseInt(v))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {[1, 2, 3, 4, 5, 6].map((n) => (
-                    <SelectItem key={n} value={String(n)}>{n} {n === 1 ? 'día' : 'días'}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="daysPerWeek">Días por Semana</Label>
+            <Select value={String(routinePlan.daysPerWeek)} onValueChange={(v) => setDaysPerWeek(parseInt(v))}>
+              <SelectTrigger className="bg-background"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {[1, 2, 3, 4, 5, 6].map((n) => (
+                  <SelectItem key={n} value={String(n)}>{n} {n === 1 ? 'día' : 'días'}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </div>
-
-        <div className="space-y-6">
-          {routinePlan.days.map((day) => (
-            <DayBlock key={day.id} day={day} />
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-          <Button variant="outline" className="h-14 text-lg font-semibold gap-2" onClick={handleSaveToDB}>
-            <Save className="h-5 w-5" />
-            Guardar en Base de Datos
-          </Button>
-          <Button className="h-14 text-lg font-semibold gap-2" onClick={handleExportExcel}>
-            <FileSpreadsheet className="h-5 w-5" />
-            Exportar a Excel
-          </Button>
         </div>
       </div>
-    </MainLayout>
+
+      <div className="space-y-6">
+        {routinePlan.days.map((day) => (
+          <DayBlock key={day.id} day={day} />
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+        <Button variant="outline" className="h-14 text-lg font-semibold gap-2 border-primary/20 hover:bg-primary/5" onClick={handleSaveToDB}>
+          <Save className="h-5 w-5" />
+          Guardar en Base de Datos
+        </Button>
+        <Button className="h-14 text-lg font-semibold gap-2 shadow-lg shadow-primary/20" onClick={handleExportExcel}>
+          <FileSpreadsheet className="h-5 w-5" />
+          Exportar a Excel
+        </Button>
+      </div>
+    </div>
   );
 }

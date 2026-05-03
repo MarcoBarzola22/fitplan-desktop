@@ -3,7 +3,7 @@
 
 FitPlan es una solución de escritorio diseñada para eliminar la fricción en el flujo de trabajo de los entrenadores personales. Permite centralizar bibliotecas de ejercicios, construir rutinas dinámicas y garantizar la persistencia de datos local, todo bajo una interfaz moderna y eficiente.
 
-Desarrollado por **GEPI Software** (Villa Mercedes, San Luis).
+Desarrollado por Marco Barzola (Villa Mercedes, San Luis).
 
 ---
 

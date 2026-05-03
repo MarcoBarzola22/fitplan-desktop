@@ -37,6 +37,8 @@
     daysCount  Int
     createdAt  DateTime @default(now())
     updatedAt  DateTime @updatedAt
+    clientId  String?
+  client    Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
 
     days RoutineDay[]
   }
@@ -81,3 +83,41 @@
     exerciseId Int
     exercise   Exercise   @relation(fields: [exerciseId], references: [id])
   }
+
+// --- NUEVOS MODELOS V2 ---
+
+model Client {
+  id        String    @id @default(uuid())
+  name      String
+  phone     String?   
+  email     String?
+  
+  // --- Datos Biométricos (Nuevos) ---
+  age       Int?      // Edad en años
+  weight    Float?    // Peso en kg (Float permite decimales, ej: 75.5)
+  height    Float?    // Altura en cm (ej: 180)
+  
+  isActive  Boolean   @default(true) 
+  
+  // Relaciones
+  routines  Routine[] 
+  payments  Payment[] 
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Payment {
+  id          String    @id @default(uuid())
+  amount      Float
+  paymentDate DateTime  @default(now())
+  validUntil  DateTime  // Para saber cuándo se le vence el mes
+  notes       String?
+  
+  // Relación con el Cliente
+  clientId    String
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}

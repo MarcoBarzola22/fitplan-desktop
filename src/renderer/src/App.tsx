@@ -5,17 +5,19 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HashRouter, Routes, Route } from "react-router-dom";
+
+// Layout y Páginas
+import { MainLayout } from "./components/layout/MainLayout";
 import ExerciseLibrary from "./pages/ExerciseLibrary";
 import RoutineBuilder from "./pages/RoutineBuilder";
+import ClientsPage from "./pages/ClientsPage"; // <--- Importamos la nueva página
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  // 1. Extraemos la función de nuestro store
   const fetchExercises = useExerciseStore((state) => state.fetchExercises);
 
-  // 2. Ejecutamos la función apenas la app arranca
   useEffect(() => {
     fetchExercises();
   }, [fetchExercises]);
@@ -26,11 +28,15 @@ const App = () => {
         <Toaster />
         <Sonner />
         <HashRouter>
-          <Routes>
-            <Route path="/" element={<ExerciseLibrary />} />
-            <Route path="/routine-builder" element={<RoutineBuilder />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          {/* Envolvemos las rutas con MainLayout para que el Sidebar sea global */}
+          <MainLayout>
+            <Routes>
+              <Route path="/" element={<ExerciseLibrary />} />
+              <Route path="/clients" element={<ClientsPage />} /> {/* <--- Nueva Ruta */}
+              <Route path="/routine-builder" element={<RoutineBuilder />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </MainLayout>
         </HashRouter>
       </TooltipProvider>
     </QueryClientProvider>
