@@ -34,6 +34,7 @@ export interface TrainingDay {
 
 export interface RoutinePlan {
   clientName: string;
+  clientId?: string;
   daysPerWeek: number;
   days: TrainingDay[];
 }

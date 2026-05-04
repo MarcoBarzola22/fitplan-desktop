@@ -3,23 +3,23 @@ import { Exercise, DayExercise, TrainingDay, RoutinePlan, WarmupExercise } from 
 
 interface ExerciseStore {
   exercises: Exercise[];
+  clients: any[]; // <--- NUEVO
   routinePlan: RoutinePlan;
   
   fetchExercises: () => Promise<void>;
+  fetchClients: () => Promise<void>; // <--- NUEVO
   
   addExercise: (exercise: Exercise) => Promise<void>;
   updateExercise: (id: string, exercise: Partial<Exercise>) => void;
   deleteExercise: (id: string) => void;
   
-  setClientName: (name: string) => void;
+  setClientName: (name: string, clientId?: string) => void; // <--- ACTUALIZADO
   setDaysPerWeek: (days: number) => void;
   
-  // --- Acciones de Ejercicios Principales ---
   addExerciseToDay: (dayId: string) => void;
   updateDayExercise: (dayId: string, exerciseId: string, updates: Partial<DayExercise>) => void;
   removeExerciseFromDay: (dayId: string, exerciseId: string) => void;
 
-  // --- NUEVO: Acciones de Calentamiento/Movilidad ---
   addWarmupToDay: (dayId: string) => void;
   updateWarmupInDay: (dayId: string, warmupId: string, updates: Partial<WarmupExercise>) => void;
   removeWarmupFromDay: (dayId: string, warmupId: string) => void;
@@ -39,7 +39,6 @@ const createEmptyDayExercise = (): DayExercise => ({
   rpe: '',
 });
 
-// NUEVO: Creador de calentamientos vacíos
 const createEmptyWarmup = (): WarmupExercise => ({
   id: crypto.randomUUID(),
   exerciseId: '',
@@ -52,17 +51,19 @@ const createEmptyDay = (dayNumber: number): TrainingDay => ({
   id: crypto.randomUUID(),
   dayNumber,
   exercises: [],
-  warmups: [], // Inicializamos el array de calentamientos
+  warmups: [],
 });
 
 const initialRoutinePlan: RoutinePlan = {
   clientName: '',
+  clientId: '', // <--- NUEVO
   daysPerWeek: 3,
   days: [createEmptyDay(1), createEmptyDay(2), createEmptyDay(3)],
 };
 
-export const useExerciseStore = create<ExerciseStore>((set,get) => ({
+export const useExerciseStore = create<ExerciseStore>((set, get) => ({
   exercises: [],
+  clients: [], // <--- NUEVO
   routinePlan: initialRoutinePlan,
 
   fetchExercises: async () => {
@@ -78,6 +79,18 @@ export const useExerciseStore = create<ExerciseStore>((set,get) => ({
       set({ exercises: formattedExercises });
     } catch (error) {
       console.error("Error al obtener ejercicios de la DB:", error);
+    }
+  },
+
+  // NUEVO: Cargar clientes de la DB
+  fetchClients: async () => {
+    try {
+      const result = await (window as any).api.getClients();
+      if (result.success) {
+        set({ clients: result.data });
+      }
+    } catch (error) {
+      console.error("Error al obtener clientes:", error);
     }
   },
 
@@ -99,8 +112,6 @@ export const useExerciseStore = create<ExerciseStore>((set,get) => ({
           isWarmup: result.exercise.isWarmup
         };
         set((state) => ({ exercises: [...state.exercises, newExercise] }));
-      } else {
-        console.error("Error guardando:", result.error);
       }
     } catch (error) {
       console.error("Fallo la conexión con BD:", error);
@@ -109,9 +120,7 @@ export const useExerciseStore = create<ExerciseStore>((set,get) => ({
 
   updateExercise: (id, updates) =>
     set((state) => ({
-      exercises: state.exercises.map((e) =>
-        e.id === id ? { ...e, ...updates } : e
-      ),
+      exercises: state.exercises.map((e) => e.id === id ? { ...e, ...updates } : e),
     })),
 
   deleteExercise: (id) =>
@@ -119,16 +128,16 @@ export const useExerciseStore = create<ExerciseStore>((set,get) => ({
       exercises: state.exercises.filter((e) => e.id !== id),
     })),
 
-  setClientName: (name) =>
+  // ACTUALIZADO: Guarda nombre e ID
+  setClientName: (name, clientId) =>
     set((state) => ({
-      routinePlan: { ...state.routinePlan, clientName: name },
+      routinePlan: { ...state.routinePlan, clientName: name, clientId: clientId },
     })),
 
   setDaysPerWeek: (daysCount) =>
     set((state) => {
       const currentDays = state.routinePlan.days;
       let newDays = [...currentDays];
-
       if (daysCount > currentDays.length) {
         for (let i = currentDays.length + 1; i <= daysCount; i++) {
           newDays.push(createEmptyDay(i));
@@ -136,13 +145,8 @@ export const useExerciseStore = create<ExerciseStore>((set,get) => ({
       } else if (daysCount < currentDays.length) {
         newDays = newDays.slice(0, daysCount);
       }
-
       return {
-        routinePlan: { 
-          ...state.routinePlan, 
-          daysPerWeek: daysCount, 
-          days: newDays 
-        },
+        routinePlan: { ...state.routinePlan, daysPerWeek: daysCount, days: newDays },
       };
     }),
 
@@ -151,9 +155,7 @@ export const useExerciseStore = create<ExerciseStore>((set,get) => ({
       routinePlan: {
         ...state.routinePlan,
         days: state.routinePlan.days.map((day) =>
-          day.id === dayId
-            ? { ...day, exercises: [...day.exercises, createEmptyDayExercise()] }
-            : day
+          day.id === dayId ? { ...day, exercises: [...day.exercises, createEmptyDayExercise()] } : day
         ),
       },
     })),
@@ -166,9 +168,7 @@ export const useExerciseStore = create<ExerciseStore>((set,get) => ({
           day.id === dayId
             ? {
                 ...day,
-                exercises: day.exercises.map((ex) =>
-                  ex.id === exerciseId ? { ...ex, ...updates } : ex
-                ),
+                exercises: day.exercises.map((ex) => ex.id === exerciseId ? { ...ex, ...updates } : ex),
               }
             : day
         ),
@@ -180,22 +180,17 @@ export const useExerciseStore = create<ExerciseStore>((set,get) => ({
       routinePlan: {
         ...state.routinePlan,
         days: state.routinePlan.days.map((day) =>
-          day.id === dayId
-            ? { ...day, exercises: day.exercises.filter((ex) => ex.id !== exerciseId) }
-            : day
+          day.id === dayId ? { ...day, exercises: day.exercises.filter((ex) => ex.id !== exerciseId) } : day
         ),
       },
     })),
 
-  // --- LÓGICA DE CALENTAMIENTOS ---
   addWarmupToDay: (dayId) =>
     set((state) => ({
       routinePlan: {
         ...state.routinePlan,
         days: state.routinePlan.days.map((day) =>
-          day.id === dayId
-            ? { ...day, warmups: [...(day.warmups || []), createEmptyWarmup()] }
-            : day
+          day.id === dayId ? { ...day, warmups: [...(day.warmups || []), createEmptyWarmup()] } : day
         ),
       },
     })),
@@ -208,9 +203,7 @@ export const useExerciseStore = create<ExerciseStore>((set,get) => ({
           day.id === dayId
             ? {
                 ...day,
-                warmups: day.warmups.map((w) =>
-                  w.id === warmupId ? { ...w, ...updates } : w
-                ),
+                warmups: day.warmups.map((w) => w.id === warmupId ? { ...w, ...updates } : w),
               }
             : day
         ),
@@ -222,9 +215,7 @@ export const useExerciseStore = create<ExerciseStore>((set,get) => ({
       routinePlan: {
         ...state.routinePlan,
         days: state.routinePlan.days.map((day) =>
-          day.id === dayId
-            ? { ...day, warmups: day.warmups.filter((w) => w.id !== warmupId) }
-            : day
+          day.id === dayId ? { ...day, warmups: day.warmups.filter((w) => w.id !== warmupId) } : day
         ),
       },
     })),
@@ -233,24 +224,21 @@ export const useExerciseStore = create<ExerciseStore>((set,get) => ({
     set({
       routinePlan: {
         clientName: '',
+        clientId: '',
         daysPerWeek: 3,
         days: [createEmptyDay(1), createEmptyDay(2), createEmptyDay(3)],
       },
     }),
-    // --- GUARDAR RUTINA EN DB ---
-  saveRoutine: async () => {
-    const { routinePlan } = get(); // Necesitamos 'get' para obtener el estado actual
-    
-    // Validación básica: que tenga nombre de cliente
-    if (!routinePlan.clientName.trim()) {
-      return { success: false, error: "Debes ingresar el nombre del cliente" };
-    }
 
+  saveRoutine: async () => {
+    const { routinePlan } = get();
+    if (!routinePlan.clientId) { // Cambio validación a ID
+      return { success: false, error: "Debes seleccionar un cliente de la lista" };
+    }
     try {
       const result = await window.api.saveRoutine(routinePlan);
       return result;
     } catch (error) {
-      console.error("Error al persistir rutina:", error);
       return { success: false, error: "Error de conexión con la base de datos" };
     }
   },

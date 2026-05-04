@@ -1,7 +1,7 @@
+import { useEffect } from 'react';
 import { FileSpreadsheet, Save, Trash2 } from 'lucide-react';
 import { DayBlock } from '@/components/routines/DayBlock';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -15,8 +15,23 @@ import { useToast } from '@/hooks/use-toast';
 import { patternLabels } from '@/types/exercise';
 
 export default function RoutineBuilder() {
-  const { exercises, routinePlan, setClientName, setDaysPerWeek, clearRoutinePlan, saveRoutine } = useExerciseStore();
+  const { 
+    exercises, 
+    clients, 
+    fetchClients, 
+    routinePlan, 
+    setClientName, 
+    setDaysPerWeek, 
+    clearRoutinePlan, 
+    saveRoutine 
+  } = useExerciseStore();
+  
   const { toast } = useToast();
+
+  // Cargamos los clientes apenas se monta el componente
+  useEffect(() => {
+    fetchClients();
+  }, []);
 
   const handleSaveToDB = async () => {
     const result = await saveRoutine();
@@ -92,16 +107,33 @@ export default function RoutineBuilder() {
 
       <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
         <div className="grid gap-6 md:grid-cols-2">
+          {/* SELECTOR DE CLIENTES REALES (Reemplaza al Input antiguo) */}
           <div className="space-y-2">
-            <Label htmlFor="clientName">Nombre del Cliente</Label>
-            <Input
-              id="clientName"
-              placeholder="Ej: Juan Pérez"
-              value={routinePlan.clientName}
-              onChange={(e) => setClientName(e.target.value)}
-              className="bg-background"
-            />
+            <Label>Seleccionar Alumno</Label>
+            <Select 
+              value={routinePlan.clientId || ""} 
+              onValueChange={(id) => {
+                const selected = clients.find(c => c.id === id);
+                if (selected) setClientName(selected.name, selected.id);
+              }}
+            >
+              <SelectTrigger className="bg-background focus:ring-primary">
+                <SelectValue placeholder="Buscá un alumno registrado..." />
+              </SelectTrigger>
+              <SelectContent>
+                {clients.length > 0 ? (
+                  clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="p-2 text-sm text-muted-foreground">No hay clientes en la base de datos</div>
+                )}
+              </SelectContent>
+            </Select>
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="daysPerWeek">Días por Semana</Label>
             <Select value={String(routinePlan.daysPerWeek)} onValueChange={(v) => setDaysPerWeek(parseInt(v))}>
