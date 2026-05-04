@@ -78,7 +78,7 @@ export const setupDBHandlers = () => {
           data: {
             clientName: routineData.clientName,
             daysCount: routineData.daysPerWeek,
-            clientId: routineData.clientId || null, // Link opcional con el ID de cliente de la V2[cite: 1]
+            clientId: routineData.clientId || null,
             days: {
               create: routineData.days.map((day: any) => ({
                 dayNumber: day.dayNumber,
@@ -136,62 +136,83 @@ export const setupDBHandlers = () => {
     return await prisma.pattern.findMany({ orderBy: { name: 'asc' }})
   })
 
-  // --- MÓDULO DE CLIENTES V2[cite: 1] ---
+  // --- MÓDULO DE CLIENTES V2 ---
   
   // Guardar un cliente nuevo
   ipcMain.handle('create-client', async (_, data) => {
     return await createClient(data)
   })
 
-  // Obtener la lista de alumnos
+  // 1. Obtener solo clientes activos para la lista principal
   ipcMain.handle('get-clients', async () => {
     try {
       const clients = await prisma.client.findMany({
+        where: { isActive: true }, 
         orderBy: { name: 'asc' }
-      })
-      return { success: true, data: clients }
+      });
+      return { success: true, data: clients };
     } catch (e) {
       console.error("Error al obtener clientes:", e)
-      return { success: false, error: String(e) }
+      return { success: false, error: String(e) };
     }
-  })
+  });
 
-  // Eliminar un cliente
-ipcMain.handle('delete-client', async (_, clientId: string) => {
-  try {
-    await prisma.client.delete({
-      where: { id: clientId }
-    });
-    return { success: true };
-  } catch (e) {
-    console.error("Error al eliminar cliente:", e);
-    return { success: false, error: "No se puede eliminar: el cliente tiene rutinas o pagos asociados." };
-  }
-});
+  // 2. Borrado Lógico (Archivar)
+  ipcMain.handle('delete-client', async (_, clientId: string) => {
+    try {
+      await prisma.client.update({
+        where: { id: clientId },
+        data: { isActive: false } 
+      });
+      return { success: true };
+    } catch (e) {
+      console.error("Error al archivar cliente:", e);
+      return { success: false, error: "No se pudo archivar el cliente." };
+    }
+  });
 
-// Actualizar datos de un cliente
-ipcMain.handle('update-client', async (_, { id, ...data }) => {
-  try {
-    const updated = await prisma.client.update({
-      where: { id },
-      data: {
-        name: data.name,
-        phone: data.phone || null,
-        age: data.age && data.age !== "" ? parseInt(String(data.age)) : null,
-weight: data.weight && data.weight !== "" ? parseFloat(String(data.weight)) : null,
-height: data.height && data.height !== "" ? parseFloat(String(data.height)) : null,
-      }
-    });
-    return { success: true, data: updated };
-  } catch (e) {
-    console.error("Error al actualizar cliente:", e);
-    return { success: false, error: "Error al actualizar los datos." };
-  }
-});
+  // 3. Actualizar datos de un cliente
+  ipcMain.handle('update-client', async (_, { id, ...data }) => {
+    try {
+      const updated = await prisma.client.update({
+        where: { id },
+        data: {
+          name: data.name,
+          phone: data.phone || null,
+          age: data.age && data.age !== "" ? parseInt(String(data.age)) : null,
+          weight: data.weight && data.weight !== "" ? parseFloat(String(data.weight)) : null,
+          height: data.height && data.height !== "" ? parseFloat(String(data.height)) : null,
+        }
+      });
+      return { success: true, data: updated };
+    } catch (e) {
+      console.error("Error al actualizar cliente:", e);
+      return { success: false, error: "Error al actualizar los datos." };
+    }
+  });
+
+  // 4. Obtener detalle completo del cliente
+  ipcMain.handle('get-client-detail', async (_, clientId: string) => {
+    try {
+      const client = await prisma.client.findUnique({
+        where: { id: clientId },
+        include: {
+          routines: {
+            orderBy: { createdAt: 'desc' },
+            select: { id: true, createdAt: true, daysCount: true }
+          }
+        }
+      });
+      return { success: true, data: client };
+    } catch (e) {
+      console.error("Error al cargar perfil:", e)
+      return { success: false, error: "Error al cargar el perfil." };
+    }
+  });
 }
 
 /**
- * Función lógica para la creación de clientes con tipos de datos correctos[cite: 1].
+ * Función lógica para la creación de clientes
  */
 export async function createClient(clientData: { 
   name: string, 
@@ -207,9 +228,9 @@ export async function createClient(clientData: {
         name: clientData.name,
         phone: clientData.phone || null,
         email: clientData.email || null,
-        age: clientData.age ? parseInt(String(clientData.age)) : null,
-        weight: clientData.weight ? parseFloat(String(clientData.weight)) : null,
-        height: clientData.height ? parseFloat(String(clientData.height)) : null,
+        age: clientData.age && clientData.age !== "" ? parseInt(String(clientData.age)) : null,
+        weight: clientData.weight && clientData.weight !== "" ? parseFloat(String(clientData.weight)) : null,
+        height: clientData.height && clientData.height !== "" ? parseFloat(String(clientData.height)) : null,
       },
     })
     return { success: true, data: newClient }
@@ -218,3 +239,4 @@ export async function createClient(clientData: {
     return { success: false, error: "No se pudo guardar el cliente en la base de datos" }
   }
 }
+

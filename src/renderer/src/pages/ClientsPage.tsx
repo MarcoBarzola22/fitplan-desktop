@@ -3,6 +3,7 @@ import { Plus, Search, Users, UserPlus, Phone, Pencil, Trash2, AlertTriangle } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -14,6 +15,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 export default function ClientsPage() {
+  const navigate = useNavigate();
   const [clients, setClients] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
@@ -98,7 +100,7 @@ export default function ClientsPage() {
         </Button>
       </div>
 
-      {/* --- MODAL DE CREAR/EDITAR (Con Teléfono Reinsertado) --- */}
+      {/* --- MODAL DE CREAR/EDITAR --- */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[425px] bg-card border-border">
           <DialogHeader>
@@ -115,7 +117,6 @@ export default function ClientsPage() {
                 className="bg-background focus-visible:ring-primary"
               />
             </div>
-            {/* AQUÍ VOLVIÓ EL TELÉFONO */}
             <div className="space-y-2">
               <Label>Teléfono / WhatsApp</Label>
               <Input 
@@ -139,7 +140,7 @@ export default function ClientsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* --- MODAL DE CONFIRMACIÓN --- */}
+      {/* --- MODAL DE CONFIRMACIÓN (BORRADO LÓGICO) --- */}
       <Dialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <DialogContent className="sm:max-w-[400px] border-destructive/20 bg-card">
           <DialogHeader className="flex flex-col items-center text-center">
@@ -147,7 +148,9 @@ export default function ClientsPage() {
               <AlertTriangle className="h-6 w-6 text-destructive" />
             </div>
             <DialogTitle>¿Confirmar eliminación?</DialogTitle>
-            <DialogDescription>Esta acción es permanente.</DialogDescription>
+            <DialogDescription>
+              El cliente será archivado y dejará de aparecer en la lista activa.
+            </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 sm:justify-center pt-4">
             <Button variant="ghost" onClick={() => setIsDeleteAlertOpen(false)}>Cancelar</Button>
@@ -156,7 +159,7 @@ export default function ClientsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* --- BUSCADOR CORREGIDO (Con anillo naranja) --- */}
+      {/* --- BUSCADOR --- */}
       <div className="flex gap-4 items-center bg-card p-4 rounded-xl border border-border">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -187,7 +190,15 @@ export default function ClientsPage() {
             <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary font-bold mb-3">
               {client.name.charAt(0).toUpperCase()}
             </div>
-            <h3 className="font-bold text-lg leading-tight">{client.name}</h3>
+
+            {/* CLICK PARA ENTRAR AL DETALLE */}
+            <h3 
+              className="font-bold text-lg leading-tight hover:text-primary cursor-pointer transition-colors"
+              onClick={() => navigate(`/clients/${client.id}`)}
+            >
+              {client.name}
+            </h3>
+
             <p className="text-sm text-muted-foreground mb-4 flex items-center gap-2">
               <Phone className="h-3 w-3" /> {client.phone || 'Sin contacto'}
             </p>

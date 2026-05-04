@@ -10,7 +10,8 @@ import { HashRouter, Routes, Route } from "react-router-dom";
 import { MainLayout } from "./components/layout/MainLayout";
 import ExerciseLibrary from "./pages/ExerciseLibrary";
 import RoutineBuilder from "./pages/RoutineBuilder";
-import ClientsPage from "./pages/ClientsPage"; // <--- Importamos la nueva página
+import ClientsPage from "./pages/ClientsPage"; 
+import ClientDetail from "./pages/ClientDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,7 +33,9 @@ const App = () => {
           <MainLayout>
             <Routes>
               <Route path="/" element={<ExerciseLibrary />} />
-              <Route path="/clients" element={<ClientsPage />} /> {/* <--- Nueva Ruta */}
+              <Route path="/clients" element={<ClientsPage />} />
+              {/* 2. Agregar la ruta dinámica con :id */}
+              <Route path="/clients/:id" element={<ClientDetail />} /> 
               <Route path="/routine-builder" element={<RoutineBuilder />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
