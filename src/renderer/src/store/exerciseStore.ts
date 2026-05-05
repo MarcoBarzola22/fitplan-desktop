@@ -70,7 +70,16 @@ export const useExerciseStore = create<ExerciseStore>((set, get) => ({
   routinePlan: initialRoutinePlan,
   isTemplate: false, // <--- Inicializamos en false
 
-  setAsTemplate: (value) => set({ isTemplate: value }),
+  setAsTemplate: (value) => {
+    if (value) {
+      set((state) => ({ 
+        isTemplate: value,
+        routinePlan: { ...state.routinePlan, clientId: '', clientName: '' } 
+      }));
+    } else {
+      set({ isTemplate: value });
+    }
+  },
 
   fetchExercises: async () => {
     try {
@@ -135,7 +144,11 @@ export const useExerciseStore = create<ExerciseStore>((set, get) => ({
 
   setClientName: (name, clientId) =>
     set((state) => ({
-      routinePlan: { ...state.routinePlan, clientName: name, clientId: clientId },
+      routinePlan: { 
+        ...state.routinePlan, 
+        clientName: name, 
+        clientId: clientId !== undefined ? clientId : state.routinePlan.clientId 
+      },
     })),
 
   setDaysPerWeek: (daysCount) =>
@@ -257,12 +270,17 @@ export const useExerciseStore = create<ExerciseStore>((set, get) => ({
 
   // Carga una plantilla existente en el constructor
   loadTemplate: async (templateId: number) => {
-    const result = await (window as any).api.invoke('get-routine-detail', templateId);
+    // CAMBIO: Usar la función directa expuesta en el preload
+    const result = await (window as any).api.getRoutineDetail(templateId);
+    
     if (result.success) {
       const template = result.data;
       set({
+        // Al cargar una plantilla, desactivamos el modo template para que el 
+        // usuario elija a qué cliente asignársela.
+        isTemplate: false, 
         routinePlan: {
-          clientName: get().routinePlan.clientName, // Mantenemos el cliente si ya estaba
+          clientName: get().routinePlan.clientName, 
           clientId: get().routinePlan.clientId,
           daysPerWeek: template.daysCount,
           days: template.days.map((d: any) => ({

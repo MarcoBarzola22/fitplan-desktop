@@ -74,11 +74,12 @@ export const setupDBHandlers = () => {
   ipcMain.handle('db:save-routine', async (_, routineData) => {
     try {
       const result = await prisma.$transaction(async (tx) => {
-        const routine = await tx.routine.create({
+        return await tx.routine.create({
           data: {
-            clientName: routineData.clientName,
+            clientName: routineData.clientName || "PLANTILLA",
             daysCount: routineData.daysPerWeek,
             clientId: routineData.clientId || null,
+            isTemplate: routineData.isTemplate || false, // <--- ¡CLAVE PARA FAVORITOS!
             days: {
               create: routineData.days.map((day: any) => ({
                 dayNumber: day.dayNumber,
@@ -87,12 +88,7 @@ export const setupDBHandlers = () => {
                     .filter((ex: any) => ex.exerciseId)
                     .map((ex: any, index: number) => ({
                       exerciseId: parseInt(ex.exerciseId),
-                      sets: ex.sets,
-                      reps: ex.reps,
-                      rest: ex.rest,
-                      weight: ex.weight,
-                      rpe: ex.rpe,
-                      order: index
+                      sets: ex.sets, reps: ex.reps, rest: ex.rest, weight: ex.weight, rpe: ex.rpe, order: index
                     }))
                 },
                 warmups: {
@@ -100,22 +96,17 @@ export const setupDBHandlers = () => {
                     .filter((w: any) => w.exerciseId)
                     .map((w: any, index: number) => ({
                       exerciseId: parseInt(w.exerciseId),
-                      sets: w.sets,
-                      reps: w.reps,
-                      weight: w.weight,
-                      order: index
+                      sets: w.sets, reps: w.reps, weight: w.weight, order: index
                     }))
                 }
               }))
             }
           }
         })
-        return routine
       })
-
       return { success: true, routineId: result.id }
     } catch (e) {
-      console.error("Error al guardar rutina:", e)
+      console.error(e)
       return { success: false, error: String(e) }
     }
   })
@@ -237,7 +228,34 @@ export const setupDBHandlers = () => {
     }
   });
 
+  ipcMain.handle('get-templates', async () => {
+    try {
+      return await prisma.routine.findMany({
+        where: { isTemplate: true },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, clientName: true, createdAt: true, daysCount: true }
+      })
+    } catch (e) {
+      return []
+    }
+  })
+
+  ipcMain.handle('delete-routine', async (_, routineId: number) => {
+  try {
+    // Prisma borrará en cascada los días y ejercicios si así está configurado
+    await prisma.routine.delete({
+      where: { id: routineId }
+    });
+    return { success: true };
+  } catch (e) {
+    console.error("Error al eliminar rutina:", e);
+    return { success: false, error: "No se pudo eliminar la rutina." };
+  }
+});
+
 }
+
+
 
 /**
  * Función lógica para la creación de clientes

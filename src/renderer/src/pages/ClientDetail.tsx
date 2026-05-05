@@ -21,7 +21,6 @@ export default function ClientDetail() {
   const navigate = useNavigate();
   const [client, setClient] = useState<any>(null);
   
-  // Estados para el Modal de Detalle de Rutina
   const [selectedRoutine, setSelectedRoutine] = useState<any>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
@@ -35,7 +34,7 @@ export default function ClientDetail() {
   }, [id]);
 
   const handleViewRoutine = async (routineId: number) => {
-    const result = await (window as any).api.invoke('get-routine-detail', routineId);
+    const result = await (window as any).api.getRoutineDetail(routineId);
     if (result.success) {
       setSelectedRoutine(result.data);
       setIsViewModalOpen(true);
@@ -45,7 +44,7 @@ export default function ClientDetail() {
   if (!client) return <div className="p-10 text-center">Cargando perfil...</div>;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in pb-10">
       <Button 
         variant="ghost" 
         className="gap-2 -ml-2" 
@@ -93,7 +92,6 @@ export default function ClientDetail() {
         </Card>
       </div>
 
-      {/* Historial de Rutinas */}
       <div className="space-y-4">
         <h2 className="text-xl font-bold flex items-center gap-2">
           <History className="h-5 w-5 text-primary"/> Historial de Rutinas
@@ -122,38 +120,37 @@ export default function ClientDetail() {
         )}
       </div>
 
-      {/* --- MODAL DE VISTA PREVIA DE RUTINA (SOLO LECTURA) --- */}
+      {/* --- MODAL DE VISTA PREVIA (CON SCROLL CORREGIDO) --- */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
-          <DialogHeader className="p-6 border-b bg-muted/30">
+        <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 overflow-hidden bg-card border-border">
+          <DialogHeader className="p-6 border-b bg-muted/30 shrink-0">
             <DialogTitle className="text-2xl font-bold flex items-center gap-2">
               <Dumbbell className="h-6 w-6 text-primary" />
               Detalle de Rutina - {selectedRoutine && new Date(selectedRoutine.createdAt).toLocaleDateString()}
             </DialogTitle>
             <DialogDescription>
-              Resumen completo del entrenamiento asignado a {client.name}.
+              Resumen completo del plan de entrenamiento para {client.name}.
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 p-6">
-            <div className="space-y-8">
+          <ScrollArea className="flex-1 w-full">
+            <div className="p-6 space-y-8">
               {selectedRoutine?.days.map((day: any) => (
                 <div key={day.id} className="space-y-4">
-                  <h3 className="text-lg font-bold flex items-center gap-2 border-b pb-2 text-primary">
+                  <h3 className="text-lg font-bold flex items-center gap-2 border-b border-primary/20 pb-2 text-primary">
                     DÍA {day.dayNumber}
                   </h3>
                   
-                  {/* Calentamientos */}
                   {day.warmups?.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Movilidad / Calentamiento</p>
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Calentamiento</p>
                       <div className="grid gap-2">
                         {day.warmups.map((w: any) => (
-                          <div key={w.id} className="bg-muted/50 p-3 rounded-lg flex justify-between items-center border border-border">
+                          <div key={w.id} className="bg-muted/40 p-3 rounded-lg flex justify-between items-center border border-border">
                             <span className="font-medium text-sm">{w.exercise.name}</span>
                             <div className="flex gap-3 text-xs">
-                              <span className="bg-background px-2 py-1 rounded border">{w.sets} Series</span>
-                              <span className="bg-background px-2 py-1 rounded border">{w.reps} Reps</span>
+                              <Badge variant="outline">{w.sets} Series</Badge>
+                              <Badge variant="outline">{w.reps} Reps</Badge>
                             </div>
                           </div>
                         ))}
@@ -161,37 +158,36 @@ export default function ClientDetail() {
                     </div>
                   )}
 
-                  {/* Ejercicios Principales */}
                   <div className="space-y-2">
                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Entrenamiento Principal</p>
                     <div className="grid gap-3">
                       {day.exercises?.map((ex: any) => (
-                        <Card key={ex.id} className="border-border/60 bg-card overflow-hidden">
+                        <Card key={ex.id} className="border-border/60 bg-card/50 overflow-hidden shadow-none">
                           <div className="flex items-center gap-4 p-3">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <Badge variant="secondary" className="text-[10px] h-4">
+                                <Badge variant="secondary" className="text-[10px] h-4 bg-primary/10 text-primary hover:bg-primary/20 border-none">
                                   {ex.exercise.pattern.name}
                                 </Badge>
                                 <span className="font-bold text-sm">{ex.exercise.name}</span>
                               </div>
                               <div className="grid grid-cols-4 gap-2">
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                                   <Clock className="h-3 w-3" /> {ex.sets}x{ex.reps}
                                 </div>
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                                   <Weight className="h-3 w-3" /> {ex.weight || '-'}kg
                                 </div>
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                                   <Target className="h-3 w-3" /> RPE {ex.rpe || '-'}
                                 </div>
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                                   <Info className="h-3 w-3" /> {ex.rest}" Desc.
                                 </div>
                               </div>
                             </div>
                             {ex.exercise.videoUrl && (
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10" asChild>
                                 <a href={ex.exercise.videoUrl} target="_blank" rel="noreferrer">
                                   <ExternalLink className="h-4 w-4" />
                                 </a>
