@@ -32,16 +32,20 @@
   // --- CONSTRUCTOR DE RUTINAS ---
 
   model Routine {
-    id         Int      @id @default(autoincrement())
-    clientName String
-    daysCount  Int
-    createdAt  DateTime @default(now())
-    updatedAt  DateTime @updatedAt
-    clientId  String?
-  client    Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
-
-    days RoutineDay[]
-  }
+  id          Int          @id @default(autoincrement())
+  clientName  String
+  daysCount   Int
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  clientId    String?
+  
+  // --- NUEVOS CAMPOS ---
+  isTemplate  Boolean      @default(false) // Para marcar si es una plantilla/favorito
+  name        String?      // Opcional: para ponerle un nombre a la plantilla (ej: "Fuerza Iniciación")
+  
+  client      Client?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  days        RoutineDay[]
+}
 
   model RoutineDay {
     id        Int     @id @default(autoincrement())

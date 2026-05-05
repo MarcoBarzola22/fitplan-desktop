@@ -13,6 +13,7 @@ getClients: () => ipcRenderer.invoke('get-clients'),
 updateClient: (data: any) => ipcRenderer.invoke('update-client', data),
 deleteClient: (id: string) => ipcRenderer.invoke('delete-client', id),
 getClientDetail: (id: string) => ipcRenderer.invoke('get-client-detail', id),
+getRoutineDetail: (id: number) => ipcRenderer.invoke('get-routine-detail', id),
 }
 
 if (process.contextIsolated) {

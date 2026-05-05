@@ -209,6 +209,34 @@ export const setupDBHandlers = () => {
       return { success: false, error: "Error al cargar el perfil." };
     }
   });
+
+  ipcMain.handle('get-routine-detail', async (_, routineId: number) => {
+    try {
+      const routine = await prisma.routine.findUnique({
+        where: { id: routineId },
+        include: {
+          days: {
+            orderBy: { dayNumber: 'asc' },
+            include: {
+              exercises: {
+                include: { exercise: { include: { pattern: true } } },
+                orderBy: { order: 'asc' }
+              },
+              warmups: {
+                include: { exercise: true },
+                orderBy: { order: 'asc' }
+              }
+            }
+          }
+        }
+      });
+      return { success: true, data: routine };
+    } catch (e) {
+      console.error("Error al obtener detalle de rutina:", e);
+      return { success: false, error: "No se pudo cargar el detalle." };
+    }
+  });
+
 }
 
 /**

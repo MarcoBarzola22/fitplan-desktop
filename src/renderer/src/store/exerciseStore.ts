@@ -3,17 +3,19 @@ import { Exercise, DayExercise, TrainingDay, RoutinePlan, WarmupExercise } from 
 
 interface ExerciseStore {
   exercises: Exercise[];
-  clients: any[]; // <--- NUEVO
+  clients: any[];
   routinePlan: RoutinePlan;
+  isTemplate: boolean; // <--- NUEVO
+  setAsTemplate: (value: boolean) => void; // <--- NUEVO
   
   fetchExercises: () => Promise<void>;
-  fetchClients: () => Promise<void>; // <--- NUEVO
+  fetchClients: () => Promise<void>;
   
   addExercise: (exercise: Exercise) => Promise<void>;
   updateExercise: (id: string, exercise: Partial<Exercise>) => void;
   deleteExercise: (id: string) => void;
   
-  setClientName: (name: string, clientId?: string) => void; // <--- ACTUALIZADO
+  setClientName: (name: string, clientId?: string) => void;
   setDaysPerWeek: (days: number) => void;
   
   addExerciseToDay: (dayId: string) => void;
@@ -26,6 +28,7 @@ interface ExerciseStore {
   
   clearRoutinePlan: () => void;
   saveRoutine: () => Promise<{ success: boolean; error?: string }>;
+  loadTemplate: (templateId: number) => Promise<void>; // <--- NUEVO: Para importar favoritos
 }
 
 const createEmptyDayExercise = (): DayExercise => ({
@@ -56,15 +59,18 @@ const createEmptyDay = (dayNumber: number): TrainingDay => ({
 
 const initialRoutinePlan: RoutinePlan = {
   clientName: '',
-  clientId: '', // <--- NUEVO
+  clientId: '',
   daysPerWeek: 3,
   days: [createEmptyDay(1), createEmptyDay(2), createEmptyDay(3)],
 };
 
 export const useExerciseStore = create<ExerciseStore>((set, get) => ({
   exercises: [],
-  clients: [], // <--- NUEVO
+  clients: [],
   routinePlan: initialRoutinePlan,
+  isTemplate: false, // <--- Inicializamos en false
+
+  setAsTemplate: (value) => set({ isTemplate: value }),
 
   fetchExercises: async () => {
     try {
@@ -82,7 +88,6 @@ export const useExerciseStore = create<ExerciseStore>((set, get) => ({
     }
   },
 
-  // NUEVO: Cargar clientes de la DB
   fetchClients: async () => {
     try {
       const result = await (window as any).api.getClients();
@@ -128,7 +133,6 @@ export const useExerciseStore = create<ExerciseStore>((set, get) => ({
       exercises: state.exercises.filter((e) => e.id !== id),
     })),
 
-  // ACTUALIZADO: Guarda nombre e ID
   setClientName: (name, clientId) =>
     set((state) => ({
       routinePlan: { ...state.routinePlan, clientName: name, clientId: clientId },
@@ -222,6 +226,7 @@ export const useExerciseStore = create<ExerciseStore>((set, get) => ({
 
   clearRoutinePlan: () =>
     set({
+      isTemplate: false,
       routinePlan: {
         clientName: '',
         clientId: '',
@@ -231,15 +236,58 @@ export const useExerciseStore = create<ExerciseStore>((set, get) => ({
     }),
 
   saveRoutine: async () => {
-    const { routinePlan } = get();
-    if (!routinePlan.clientId) { // Cambio validación a ID
-      return { success: false, error: "Debes seleccionar un cliente de la lista" };
+    const { routinePlan, isTemplate } = get();
+    
+    // Validación: debe haber cliente O ser una plantilla favorita
+    if (!routinePlan.clientId && !isTemplate) {
+      return { success: false, error: "Debes seleccionar un cliente o marcar como plantilla" };
     }
+    
     try {
-      const result = await window.api.saveRoutine(routinePlan);
+      // Enviamos el objeto con el flag isTemplate
+      const result = await window.api.saveRoutine({
+        ...routinePlan,
+        isTemplate: isTemplate
+      });
       return result;
     } catch (error) {
-      return { success: false, error: "Error de conexión con la base de datos" };
+      return { success: false, error: "Error de conexión" };
     }
   },
+
+  // Carga una plantilla existente en el constructor
+  loadTemplate: async (templateId: number) => {
+    const result = await (window as any).api.invoke('get-routine-detail', templateId);
+    if (result.success) {
+      const template = result.data;
+      set({
+        routinePlan: {
+          clientName: get().routinePlan.clientName, // Mantenemos el cliente si ya estaba
+          clientId: get().routinePlan.clientId,
+          daysPerWeek: template.daysCount,
+          days: template.days.map((d: any) => ({
+            id: crypto.randomUUID(),
+            dayNumber: d.dayNumber,
+            exercises: d.exercises.map((ex: any) => ({
+              id: crypto.randomUUID(),
+              exerciseId: String(ex.exerciseId),
+              patternFilter: ex.exercise.pattern.name,
+              sets: ex.sets,
+              reps: ex.reps,
+              rest: ex.rest,
+              weight: ex.weight,
+              rpe: ex.rpe
+            })),
+            warmups: d.warmups.map((w: any) => ({
+              id: crypto.randomUUID(),
+              exerciseId: String(w.exerciseId),
+              reps: w.reps,
+              sets: w.sets,
+              weight: w.weight
+            }))
+          }))
+        }
+      });
+    }
+  }
 }));
